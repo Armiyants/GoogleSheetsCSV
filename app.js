@@ -17,7 +17,7 @@ const TOKEN_PATH = 'token.json';
 fs.readFile('credentials.json', (err, content) => {
   if (err) return console.log('Error loading client secret file:', err);
   //Authorizing a client with credentials, then calling the Google Sheets API.
-  authorize(JSON.parse(content), readData);
+  authorize(JSON.parse(content), getSpreadsheetInfo);
 });
 
 
@@ -33,7 +33,6 @@ function authorize(credentials, callback) {
     callback(oAuth2Client);
   });
 }
-
 
 
 //Get and store new token after prompting for user authorization, and then execute the given callback
@@ -72,34 +71,35 @@ function printData(file){
 }
 
 
-function downloadCSV(response, sheetsProperties){
-  for (let i = 0; i <= sheetsProperties.length - 1; i++) {
-    const spreadSheetURL = response.data.spreadsheetUrl; //Retrieving the url in order to modify it later.
-    const exportURL = spreadSheetURL.replace('/edit', '/gviz/tq?tqx=out:csv&gid='); //Amending to download file in CSV format.
-    const headers = response.config.headers['Authorization'];
-    const url = exportURL + sheetsProperties[i].properties.sheetId;
+async function downloadCSV(response, sheetsProperties){
+ try {
+   for (let i = 0; i <= sheetsProperties.length - 1; i++) {
+     const spreadSheetURL = response.data.spreadsheetUrl; //Retrieving the url in order to modify it later.
+     const exportURL = spreadSheetURL.replace('/edit', '/gviz/tq?tqx=out:csv&gid='); //Amending to download file in CSV format.
+     const headers = response.config.headers['Authorization'];
+     const url = exportURL + sheetsProperties[i].properties.sheetId;
 
-    https.get(url, headers, function (err,res) {
-      if (err) {
-        console.log('Error while trying to Download file' , err);
-      }
+     https.get(url, headers, (res) => {
+       let title = sheetsProperties[i].properties.title;
+       const fileStream = fs.createWriteStream(`${title}.csv`);
 
-      let title = sheetsProperties[i].properties.title;
-      const fileStream = fs.createWriteStream(`${title}.csv`);
-      res.pipe(fileStream); //Channeling the information we gonna get during downloading to the our writable stream.
-      fileStream.on('error', function (err){
-        console.log('Error while trying to write to the stream:' , err);
-      });
-      fileStream.on('finish', function () {
-        fileStream.close(); //Making sure file is properly closed after the downloading/piping is finished.
-      });
-      printData(`${title}.csv`); //Printing data to terminal.
-    });
-  }
+       res.pipe(fileStream); //Channeling the information we gonna get during downloading to the our writable stream.
+       fileStream.on('error', function (err){
+         console.log('Error while trying to write to the stream:' , err);
+       });
+       fileStream.on('finish', function () {
+         fileStream.close(); //Making sure file is properly closed after the downloading/piping is finished.
+       });
+       printData(`${title}.csv`); //Printing data to terminal.
+     })
+   }
+ } catch (err) {
+   console.log('Error while trying to download file:', err);
+ }
 }
 
 
-function readData(auth) {
+async function getSpreadsheetInfo(auth) {
   const sheets = google.sheets({version: 'v4', auth});
   let request = {
     spreadsheetId: '19BQWGzH4q1C0rHNVAzhh5PqaxB655lSNmSGc473vu74',
@@ -110,15 +110,10 @@ function readData(auth) {
 
   try {
     //Returns the spreadsheet at the given ID.
-    sheets.spreadsheets.get(request, function (err, response) {
-      if (err) {
-        console.log(err);
-        return;
-      }
+    const response = await sheets.spreadsheets.get(request);
 
-      let sheetsProperties = response.data['sheets']; //The sheets that are part of a spreadsheet.
-      downloadCSV(response, sheetsProperties);
-    });
+    let sheetsProperties = response.data['sheets']; //The sheets that are part of a spreadsheet.
+    await downloadCSV(response, sheetsProperties);
   } catch (err) {
     return console.log('The API returned an error: ' + err);
   }
