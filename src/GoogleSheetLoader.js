@@ -1,6 +1,6 @@
 const fs = require('fs').promises; //Module allows us to work with the file system on the computer async . TODO
 const fssync = require('fs'); //Module allows us to work with the file system on the computer sync .
-process.env["NODE_CONFIG_DIR"] = "/home/christine/GoogleSheetsCSV/config"
+process.env["NODE_CONFIG_DIR"] = "/home/christine/GoogleSheetsCSV/config";
 const config = require('config');
 const path = require('path');
 const readline = require('readline'); //Provides an interface for reading data from a Readable
@@ -191,5 +191,3 @@ class GoogleSheetLoader {
 }
 
 module.exports = GoogleSheetLoader;
-
-
