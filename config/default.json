@@ -1,0 +1,11 @@
+{
+  "downloadDir": "./downloads",
+  "scopes": "https://www.googleapis.com/auth/spreadsheets.readonly",
+  "tokenPath": "./token.json",
+  "credentialsPath": "./credentials.json"
+}
+
+
+
+
+
