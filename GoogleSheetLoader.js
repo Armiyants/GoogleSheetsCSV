@@ -46,25 +46,31 @@ class GoogleSheetLoader {
       input: process.stdin,
       output: process.stdout,
     });
-    rl.question('Enter the code from that page here: ', (code) => {
-      rl.close();
-      oAuth2Client.getToken(code, (err, token) => {
-        if (err) return console.error('Error while trying to retrieve access token', err);
-        oAuth2Client.setCredentials(token);
-
-        async function writing() {
-          try {
-            await fs.writeFile(config.tokenPath, JSON.stringify(token));
-            console.log('Token stored to', config.tokenPath);
-          } catch (err) {
-            return console.error(err);
+    const promise = new Promise((resolve, reject) => {
+      rl.question('Enter the code from that page here: ', (code) => {
+        rl.close();
+        oAuth2Client.getToken(code, (err, token) => {
+          if (err) {
+            return reject(err);
           }
-        }
 
-        writing();
-      });
-    });
-  };
+          oAuth2Client.setCredentials(token);
+
+          async function writing() {
+            try {
+              await fs.writeFile(config.tokenPath, JSON.stringify(token));
+              console.log('Token stored to', config.tokenPath);
+              return resolve(token);
+            } catch (err) {
+              return reject(err);
+            }
+          }
+
+          return resolve(writing());
+        });
+      })
+    })
+  }
 
 
   static async downloadCSV(response, sheetsProperties) {
